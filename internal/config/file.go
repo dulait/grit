@@ -9,23 +9,29 @@ import (
 )
 
 const (
-	DirName    = ".grit"
+	// DirName is the name of the grit configuration directory.
+	DirName = ".grit"
+	// ConfigFile is the name of the configuration file.
 	ConfigFile = "config.yaml"
 )
 
+// Path returns the full path to the config file within the given root directory.
 func Path(root string) string {
 	return filepath.Join(root, DirName, ConfigFile)
 }
 
+// DirPath returns the full path to the .grit directory within the given root.
 func DirPath(root string) string {
 	return filepath.Join(root, DirName)
 }
 
+// Exists reports whether a grit configuration exists in the given root directory.
 func Exists(root string) bool {
 	_, err := os.Stat(Path(root))
 	return err == nil
 }
 
+// Save writes the configuration to the .grit directory within the given root.
 func Save(root string, cfg *Config) error {
 	dirPath := DirPath(root)
 
@@ -45,6 +51,7 @@ func Save(root string, cfg *Config) error {
 	return nil
 }
 
+// Load reads and parses the configuration from the given root directory.
 func Load(root string) (*Config, error) {
 	data, err := os.ReadFile(Path(root))
 	if err != nil {
@@ -59,12 +66,15 @@ func Load(root string) (*Config, error) {
 	return &cfg, nil
 }
 
+// WriteGitignore creates a .gitignore file in the .grit directory.
 func WriteGitignore(root string) error {
 	gitignorePath := filepath.Join(DirPath(root), ".gitignore")
 	content := "# Ignore credential files\n.credentials\n"
 	return os.WriteFile(gitignorePath, []byte(content), 0644)
 }
 
+// FindRoot searches for a .grit directory starting from the current working
+// directory and traversing up the directory tree.
 func FindRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -84,6 +94,7 @@ func FindRoot() (string, error) {
 	}
 }
 
+// LoadFromWorkingDir finds the project root and loads its configuration.
 func LoadFromWorkingDir() (*Config, error) {
 	root, err := FindRoot()
 	if err != nil {
