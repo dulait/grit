@@ -1,3 +1,4 @@
+// Command grit is a CLI tool for managing GitHub issues with LLM assistance.
 package main
 
 import (
