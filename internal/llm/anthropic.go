@@ -7,16 +7,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 )
 
+// AnthropicClient implements Client using the Anthropic API.
 type AnthropicClient struct {
 	apiKey     string
 	model      string
 	httpClient *http.Client
 }
 
+// NewAnthropicClient creates a new Anthropic API client.
 func NewAnthropicClient(apiKey, model string) *AnthropicClient {
 	return &AnthropicClient{
 		apiKey: apiKey,
@@ -127,25 +128,10 @@ Respond with ONLY valid JSON:
 	if !req.SuggestLabels {
 		issue.Labels = nil
 	} else if len(req.AllowedLabels) > 0 {
-		issue.Labels = filterAllowedLabels(issue.Labels, req.AllowedLabels)
+		issue.Labels = filterLabels(issue.Labels, req.AllowedLabels)
 	}
 
 	return &issue, nil
-}
-
-func filterAllowedLabels(suggested, allowed []string) []string {
-	allowedSet := make(map[string]bool)
-	for _, l := range allowed {
-		allowedSet[strings.ToLower(l)] = true
-	}
-
-	var filtered []string
-	for _, l := range suggested {
-		if allowedSet[strings.ToLower(l)] {
-			filtered = append(filtered, l)
-		}
-	}
-	return filtered
 }
 
 func (c *AnthropicClient) GenerateComment(ctx context.Context, issueContext, userPrompt string) (string, error) {

@@ -6,6 +6,7 @@ import (
 	"github.com/dulait/grit/internal/config"
 )
 
+// NewClient creates an LLM client for the specified provider configuration.
 func NewClient(cfg config.LLMConfig, apiKey string) (Client, error) {
 	switch cfg.Provider {
 	case "anthropic":
