@@ -1,0 +1,14 @@
+version: 1
+project:
+    owner: dulait
+    repo: grit
+    labels:
+        - bug
+        - feat
+        - docs
+        - chore
+        - refactor
+llm:
+    provider: ollama
+    model: llama3.2
+    base_url: http://localhost:11434
