@@ -12,12 +12,14 @@ import (
 	"time"
 )
 
+// OllamaClient implements Client using a local Ollama server.
 type OllamaClient struct {
 	baseURL    string
 	model      string
 	httpClient *http.Client
 }
 
+// NewOllamaClient creates a new Ollama API client.
 func NewOllamaClient(baseURL, model string) *OllamaClient {
 	if baseURL == "" {
 		baseURL = "http://localhost:11434"
@@ -125,21 +127,6 @@ Respond with ONLY valid JSON:
 	}
 
 	return issue, nil
-}
-
-func filterLabels(suggested, allowed []string) []string {
-	allowedSet := make(map[string]bool)
-	for _, l := range allowed {
-		allowedSet[strings.ToLower(l)] = true
-	}
-
-	var filtered []string
-	for _, l := range suggested {
-		if allowedSet[strings.ToLower(l)] {
-			filtered = append(filtered, l)
-		}
-	}
-	return filtered
 }
 
 func (c *OllamaClient) GenerateComment(ctx context.Context, issueContext, userPrompt string) (string, error) {

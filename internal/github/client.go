@@ -2,6 +2,7 @@ package github
 
 import "context"
 
+// Client defines the interface for GitHub API operations.
 type Client interface {
 	CreateIssue(ctx context.Context, req CreateIssueRequest) (*Issue, error)
 	CloseIssue(ctx context.Context, number int, comment string) (*Issue, error)

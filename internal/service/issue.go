@@ -9,6 +9,7 @@ import (
 	"github.com/dulait/grit/internal/llm"
 )
 
+// IssueInput contains the user-provided parameters for issue creation.
 type IssueInput struct {
 	Prompt      string
 	Title       string
@@ -17,12 +18,14 @@ type IssueInput struct {
 	Assignees   []string
 }
 
+// IssueService provides operations for managing GitHub issues.
 type IssueService struct {
 	github github.Client
 	llm    llm.Client
 	cfg    *config.Config
 }
 
+// NewIssueService creates a new issue service with the given clients.
 func NewIssueService(ghClient github.Client, llmClient llm.Client, cfg *config.Config) *IssueService {
 	return &IssueService{
 		github: ghClient,
@@ -31,6 +34,7 @@ func NewIssueService(ghClient github.Client, llmClient llm.Client, cfg *config.C
 	}
 }
 
+// GenerateIssue creates issue content, optionally using LLM enhancement.
 func (s *IssueService) GenerateIssue(ctx context.Context, input IssueInput, enhance bool) (*llm.GeneratedIssue, error) {
 	if !enhance && input.Title != "" && input.Description != "" {
 		return &llm.GeneratedIssue{
@@ -76,6 +80,7 @@ func (s *IssueService) GenerateIssue(ctx context.Context, input IssueInput, enha
 	return issue, nil
 }
 
+// CreateIssue posts a new issue to GitHub.
 func (s *IssueService) CreateIssue(ctx context.Context, issue *llm.GeneratedIssue, assignees []string) (*github.Issue, error) {
 	req := github.CreateIssueRequest{
 		Title:     issue.Title,
@@ -92,6 +97,7 @@ func (s *IssueService) CreateIssue(ctx context.Context, issue *llm.GeneratedIssu
 	return created, nil
 }
 
+// CloseIssue closes an issue, optionally adding a comment.
 func (s *IssueService) CloseIssue(ctx context.Context, number int, comment string) (*github.Issue, error) {
 	closed, err := s.github.CloseIssue(ctx, number, comment)
 	if err != nil {
@@ -100,6 +106,7 @@ func (s *IssueService) CloseIssue(ctx context.Context, number int, comment strin
 	return closed, nil
 }
 
+// AddComment generates and posts a comment using the LLM.
 func (s *IssueService) AddComment(ctx context.Context, number int, userPrompt string) (*github.IssueComment, error) {
 	issue, err := s.github.GetIssue(ctx, number)
 	if err != nil {
@@ -121,6 +128,7 @@ func (s *IssueService) AddComment(ctx context.Context, number int, userPrompt st
 	return comment, nil
 }
 
+// AssignIssue assigns users to an issue.
 func (s *IssueService) AssignIssue(ctx context.Context, number int, assignees []string) (*github.Issue, error) {
 	issue, err := s.github.AssignIssue(ctx, number, assignees)
 	if err != nil {
@@ -129,6 +137,7 @@ func (s *IssueService) AssignIssue(ctx context.Context, number int, assignees []
 	return issue, nil
 }
 
+// LinkIssue creates a relationship between two issues via comment.
 func (s *IssueService) LinkIssue(ctx context.Context, number, targetNumber int, linkType string) error {
 	linkText := fmt.Sprintf("Related to #%d", targetNumber)
 	switch linkType {
@@ -152,6 +161,7 @@ func (s *IssueService) LinkIssue(ctx context.Context, number, targetNumber int, 
 	return nil
 }
 
+// CreateSubIssue creates an issue linked to a parent issue.
 func (s *IssueService) CreateSubIssue(ctx context.Context, parentNumber int, generated *llm.GeneratedIssue, assignees []string) (*github.Issue, error) {
 	body := fmt.Sprintf("Part of #%d\n\n---\n\n%s", parentNumber, generated.Body)
 
