@@ -6,7 +6,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "dev"
+// Version information set at build time via ldflags.
+var (
+	Version   = "dev"
+	CommitSHA = "unknown"
+	BuildDate = "unknown"
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "grit",
@@ -22,7 +27,9 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("grit %s\n", version)
+		fmt.Printf("grit %s\n", Version)
+		fmt.Printf("  commit: %s\n", CommitSHA)
+		fmt.Printf("  built:  %s\n", BuildDate)
 	},
 }
 
