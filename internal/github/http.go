@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// HTTPClient implements Client using the GitHub REST API.
 type HTTPClient struct {
 	baseURL    string
 	token      string
@@ -18,6 +19,7 @@ type HTTPClient struct {
 	httpClient *http.Client
 }
 
+// NewHTTPClient creates a new GitHub API client for the specified repository.
 func NewHTTPClient(owner, repo, token string) *HTTPClient {
 	return &HTTPClient{
 		baseURL: "https://api.github.com",
