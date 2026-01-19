@@ -1,0 +1,141 @@
+package github
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+)
+
+type HTTPClient struct {
+	baseURL    string
+	token      string
+	owner      string
+	repo       string
+	httpClient *http.Client
+}
+
+func NewHTTPClient(owner, repo, token string) *HTTPClient {
+	return &HTTPClient{
+		baseURL: "https://api.github.com",
+		token:   token,
+		owner:   owner,
+		repo:    repo,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
+}
+
+func (c *HTTPClient) do(ctx context.Context, method, path string, body, result any) error {
+	var bodyReader io.Reader
+	if body != nil {
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshaling request body: %w", err)
+		}
+		bodyReader = bytes.NewReader(jsonBody)
+	}
+
+	url := c.baseURL + path
+	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response body: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Message != "" {
+			return fmt.Errorf("github api error (%d): %s", resp.StatusCode, errResp.Message)
+		}
+		return fmt.Errorf("github api error (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	if result != nil && len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("parsing response: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (c *HTTPClient) repoPath(format string, args ...any) string {
+	prefix := fmt.Sprintf("/repos/%s/%s", c.owner, c.repo)
+	return prefix + fmt.Sprintf(format, args...)
+}
+
+func (c *HTTPClient) CreateIssue(ctx context.Context, req CreateIssueRequest) (*Issue, error) {
+	var issue Issue
+	path := c.repoPath("/issues")
+	if err := c.do(ctx, http.MethodPost, path, req, &issue); err != nil {
+		return nil, err
+	}
+	return &issue, nil
+}
+
+func (c *HTTPClient) GetIssue(ctx context.Context, number int) (*Issue, error) {
+	var issue Issue
+	path := c.repoPath("/issues/%d", number)
+	if err := c.do(ctx, http.MethodGet, path, nil, &issue); err != nil {
+		return nil, err
+	}
+	return &issue, nil
+}
+
+func (c *HTTPClient) CloseIssue(ctx context.Context, number int, comment string) (*Issue, error) {
+	if comment != "" {
+		if _, err := c.AddComment(ctx, number, comment); err != nil {
+			return nil, fmt.Errorf("adding closing comment: %w", err)
+		}
+	}
+
+	var issue Issue
+	path := c.repoPath("/issues/%d", number)
+	body := map[string]string{"state": "closed"}
+	if err := c.do(ctx, http.MethodPatch, path, body, &issue); err != nil {
+		return nil, err
+	}
+	return &issue, nil
+}
+
+func (c *HTTPClient) AddComment(ctx context.Context, number int, body string) (*IssueComment, error) {
+	var comment IssueComment
+	path := c.repoPath("/issues/%d/comments", number)
+	req := CreateCommentRequest{Body: body}
+	if err := c.do(ctx, http.MethodPost, path, req, &comment); err != nil {
+		return nil, err
+	}
+	return &comment, nil
+}
+
+func (c *HTTPClient) AssignIssue(ctx context.Context, number int, assignees []string) (*Issue, error) {
+	var issue Issue
+	path := c.repoPath("/issues/%d", number)
+	body := map[string][]string{"assignees": assignees}
+	if err := c.do(ctx, http.MethodPatch, path, body, &issue); err != nil {
+		return nil, err
+	}
+	return &issue, nil
+}
