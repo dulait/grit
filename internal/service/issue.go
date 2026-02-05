@@ -97,7 +97,15 @@ func (s *IssueService) CreateIssue(ctx context.Context, issue *llm.GeneratedIssu
 	return created, nil
 }
 
-// CloseIssue closes an issue, optionally adding a comment.
+func (s *IssueService) ListIssues(ctx context.Context, req github.ListIssuesRequest) ([]github.Issue, error) {
+	issues, err := s.github.ListIssues(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("listing issues: %w", err)
+	}
+	return issues, nil
+}
+
+
 func (s *IssueService) CloseIssue(ctx context.Context, number int, comment string) (*github.Issue, error) {
 	closed, err := s.github.CloseIssue(ctx, number, comment)
 	if err != nil {
