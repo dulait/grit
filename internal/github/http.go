@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -86,6 +88,37 @@ func (c *HTTPClient) do(ctx context.Context, method, path string, body, result a
 func (c *HTTPClient) repoPath(format string, args ...any) string {
 	prefix := fmt.Sprintf("/repos/%s/%s", c.owner, c.repo)
 	return prefix + fmt.Sprintf(format, args...)
+}
+
+func (c *HTTPClient) ListIssues(ctx context.Context, req ListIssuesRequest) ([]Issue, error) {
+	params := url.Values{}
+
+	if req.State != "" {
+		params.Set("state", req.State)
+	}
+	if req.Assignee != "" {
+		params.Set("assignee", req.Assignee)
+	}
+	if req.Labels != "" {
+		params.Set("labels", req.Labels)
+	}
+	if req.PerPage > 0 {
+		params.Set("per_page", strconv.Itoa(req.PerPage))
+	}
+	if req.Page > 0 {
+		params.Set("page", strconv.Itoa(req.Page))
+	}
+
+	path := c.repoPath("/issues")
+	if encoded := params.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+
+	var issues []Issue
+	if err := c.do(ctx, http.MethodGet, path, nil, &issues); err != nil {
+		return nil, err
+	}
+	return issues, nil
 }
 
 func (c *HTTPClient) CreateIssue(ctx context.Context, req CreateIssueRequest) (*Issue, error) {
