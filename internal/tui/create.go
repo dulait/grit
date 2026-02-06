@@ -95,6 +95,10 @@ func (m createModel) Update(msg tea.Msg) (createModel, tea.Cmd) {
 		case stepReview:
 			return m.updateReview(msg)
 		case stepDone:
+			if msg.String() == "o" && m.created != nil {
+				openBrowser(m.created.HTMLURL)
+				return m, nil
+			}
 			return m, func() tea.Msg { return navigateToListMsg{} }
 		}
 		if m.err != nil {
@@ -345,7 +349,7 @@ func (m createModel) viewDone() string {
 	b.WriteString("\n")
 	b.WriteString("  " + dimStyle.Render(m.created.HTMLURL))
 	b.WriteString("\n\n")
-	b.WriteString(dimStyle.Render("  Press any key to return to list"))
+	b.WriteString(dimStyle.Render("  o open in browser · any other key to return to list"))
 
 	return b.String()
 }
