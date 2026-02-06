@@ -1,6 +1,9 @@
 package tui
 
-import "github.com/dulait/grit/internal/github"
+import (
+	"github.com/dulait/grit/internal/github"
+	"github.com/dulait/grit/internal/llm"
+)
 
 type issuesLoadedMsg struct {
 	issues []github.Issue
@@ -37,3 +40,13 @@ type actionSuccessMsg struct {
 type actionDoneMsg struct{}
 
 type actionCancelledMsg struct{}
+
+type navigateToCreateMsg struct{}
+
+type issueGeneratedMsg struct {
+	issue *llm.GeneratedIssue
+}
+
+type issueCreatedMsg struct {
+	issue *github.Issue
+}
