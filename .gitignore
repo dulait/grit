@@ -33,3 +33,6 @@ go.work.sum
 # .idea/
 # .vscode/
 .claude/
+
+# Windows null device artifact
+nul
