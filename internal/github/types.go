@@ -37,6 +37,19 @@ type ListIssuesRequest struct {
 	Page     int
 }
 
+type SearchIssuesRequest struct {
+	Query   string
+	State   string
+	Labels  string
+	PerPage int
+	Page    int
+}
+
+type SearchIssuesResponse struct {
+	TotalCount int     `json:"total_count"`
+	Items      []Issue `json:"items"`
+}
+
 type CreateCommentRequest struct {
 	Body string `json:"body"`
 }

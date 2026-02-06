@@ -18,6 +18,8 @@ var listHelpBindings = []helpBinding{
 	{"n/p", "next/prev page"},
 	{"r", "refresh"},
 	{"1/2/3", "filter: open/closed/all"},
+	{"/", "search"},
+	{"esc", "clear search"},
 	{"?", "toggle help"},
 	{"q", "quit"},
 }

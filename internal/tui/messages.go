@@ -51,6 +51,16 @@ type issueCreatedMsg struct {
 	issue *github.Issue
 }
 
+type searchResultsMsg struct {
+	issues     []github.Issue
+	totalCount int
+	page       int
+}
+
+type searchTickMsg struct {
+	seq int
+}
+
 type navigateToEditMsg struct {
 	issueNumber int
 }

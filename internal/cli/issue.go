@@ -104,6 +104,14 @@ var issueEditCmd = &cobra.Command{
 	RunE:  runIssueEdit,
 }
 
+var issueSearchCmd = &cobra.Command{
+	Use:   "search <query>",
+	Short: "Search issues",
+	Long:  "Search repository issues using GitHub's search API.",
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  runIssueSearch,
+}
+
 var issueSubCmd = &cobra.Command{
 	Use:   "sub <parent-number> [prompt]",
 	Short: "Create a sub-issue",
@@ -123,6 +131,7 @@ func init() {
 	issueCmd.AddCommand(issueLinkCmd)
 	issueCmd.AddCommand(issueEditCmd)
 	issueCmd.AddCommand(issueSubCmd)
+	issueCmd.AddCommand(issueSearchCmd)
 
 	issueCreateCmd.Flags().StringVarP(&flagTitle, "title", "t", "", "Issue title")
 	issueCreateCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "Issue description")
@@ -154,6 +163,11 @@ func init() {
 	issueListCmd.Flags().StringVarP(&flagLabel, "label", "l", "", "Filter by label")
 	issueListCmd.Flags().IntVarP(&flagLimit, "limit", "n", 30, "Results per page")
 	issueListCmd.Flags().IntVarP(&flagPage, "page", "p", 1, "Page number")
+
+	issueSearchCmd.Flags().StringVarP(&flagState, "state", "s", "", "Filter by state: open, closed")
+	issueSearchCmd.Flags().StringVarP(&flagLabel, "label", "l", "", "Filter by label")
+	issueSearchCmd.Flags().IntVarP(&flagLimit, "limit", "n", 30, "Results per page")
+	issueSearchCmd.Flags().IntVarP(&flagPage, "page", "p", 1, "Page number")
 }
 
 func runIssueCreate(cmd *cobra.Command, args []string) error {
@@ -543,6 +557,72 @@ func runIssueList(cmd *cobra.Command, args []string) error {
 		printIssueList(issues)
 
 		hasNext := len(issues) == flagLimit
+		hasPrev := page > 1
+
+		if !hasNext && !hasPrev {
+			break
+		}
+
+		page = promptPagination(reader, page, hasNext, hasPrev)
+		if page == 0 {
+			break
+		}
+
+		fmt.Println()
+	}
+
+	return nil
+}
+
+func runIssueSearch(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
+	cfg, err := config.LoadFromWorkingDir()
+	if err != nil {
+		return err
+	}
+
+	ghClient, err := buildGitHubClient(cfg)
+	if err != nil {
+		return err
+	}
+
+	svc := service.NewIssueService(ghClient, nil, cfg)
+	reader := bufio.NewReader(os.Stdin)
+	page := flagPage
+	query := strings.Join(args, " ")
+
+	for {
+		req := github.SearchIssuesRequest{
+			Query:   query,
+			State:   flagState,
+			Labels:  flagLabel,
+			PerPage: flagLimit,
+			Page:    page,
+		}
+
+		resp, err := svc.SearchIssues(ctx, req)
+		if err != nil {
+			return err
+		}
+
+		if len(resp.Items) == 0 && page == 1 {
+			fmt.Println("No issues found.")
+			return nil
+		}
+
+		if len(resp.Items) == 0 {
+			fmt.Println("No more issues.")
+			return nil
+		}
+
+		if page == 1 {
+			fmt.Printf("Found %d results\n\n", resp.TotalCount)
+		}
+
+		printIssueList(resp.Items)
+
+		hasNext := len(resp.Items) == flagLimit
 		hasPrev := page > 1
 
 		if !hasNext && !hasPrev {

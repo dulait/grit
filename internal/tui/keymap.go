@@ -13,6 +13,7 @@ type listKeyMap struct {
 	FilterOpen   key.Binding
 	FilterClosed key.Binding
 	FilterAll    key.Binding
+	Search       key.Binding
 	Help         key.Binding
 	Quit         key.Binding
 }
@@ -28,6 +29,7 @@ var listKeys = listKeyMap{
 	FilterOpen:   key.NewBinding(key.WithKeys("1"), key.WithHelp("1", "open")),
 	FilterClosed: key.NewBinding(key.WithKeys("2"), key.WithHelp("2", "closed")),
 	FilterAll:    key.NewBinding(key.WithKeys("3"), key.WithHelp("3", "all")),
+	Search:       key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "search")),
 	Help:         key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 	Quit:         key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 }

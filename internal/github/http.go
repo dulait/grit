@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -199,4 +200,40 @@ func (c *HTTPClient) UpdateIssue(ctx context.Context, number int, req UpdateIssu
 		return nil, err
 	}
 	return &issue, nil
+}
+
+func (c *HTTPClient) SearchIssues(ctx context.Context, req SearchIssuesRequest) (*SearchIssuesResponse, error) {
+	qualifiers := []string{fmt.Sprintf("repo:%s/%s", c.owner, c.repo), "is:issue"}
+
+	if req.State != "" && req.State != "all" {
+		qualifiers = append(qualifiers, "state:"+req.State)
+	}
+	if req.Labels != "" {
+		for _, l := range strings.Split(req.Labels, ",") {
+			l = strings.TrimSpace(l)
+			if l != "" {
+				qualifiers = append(qualifiers, "label:"+l)
+			}
+		}
+	}
+	if req.Query != "" {
+		qualifiers = append(qualifiers, req.Query)
+	}
+
+	params := url.Values{}
+	params.Set("q", strings.Join(qualifiers, " "))
+	if req.PerPage > 0 {
+		params.Set("per_page", strconv.Itoa(req.PerPage))
+	}
+	if req.Page > 0 {
+		params.Set("page", strconv.Itoa(req.Page))
+	}
+
+	path := "/search/issues?" + params.Encode()
+
+	var resp SearchIssuesResponse
+	if err := c.do(ctx, http.MethodGet, path, nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
