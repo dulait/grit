@@ -19,6 +19,20 @@ type OllamaClient struct {
 	httpClient *http.Client
 }
 
+// CheckOllamaConnection verifies that an Ollama server is reachable.
+func CheckOllamaConnection(baseURL string) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(baseURL + "/api/tags")
+	if err != nil {
+		return fmt.Errorf("cannot reach Ollama at %s: %w", baseURL, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Ollama returned status %d at %s", resp.StatusCode, baseURL)
+	}
+	return nil
+}
+
 // NewOllamaClient creates a new Ollama API client.
 func NewOllamaClient(baseURL, model string) *OllamaClient {
 	if baseURL == "" {

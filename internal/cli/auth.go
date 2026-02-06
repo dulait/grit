@@ -88,9 +88,13 @@ func runAuthStatus(cmd *cobra.Command, args []string) error {
 		fmt.Printf("GitHub: authenticated (%s)\n", maskedToken)
 	}
 
-	fmt.Printf("LLM: %s (%s)\n", cfg.LLM.Provider, cfg.LLM.Model)
-	if cfg.LLM.Provider == "ollama" {
-		fmt.Println("  No API key required for Ollama")
+	if cfg.LLM.Provider == "none" {
+		fmt.Println("LLM: none (AI features disabled)")
+	} else {
+		fmt.Printf("LLM: %s (%s)\n", cfg.LLM.Provider, cfg.LLM.Model)
+		if cfg.LLM.Provider == "ollama" {
+			fmt.Println("  No API key required for Ollama")
+		}
 	}
 
 	return nil
