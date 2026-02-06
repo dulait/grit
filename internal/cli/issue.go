@@ -930,6 +930,10 @@ func buildGitHubClient(cfg *config.Config) (github.Client, error) {
 }
 
 func buildLLMClient(cfg *config.Config) (llm.Client, error) {
+	if cfg.LLM.Provider == "none" {
+		return nil, nil
+	}
+
 	var apiKey string
 	if cfg.LLM.Provider != "ollama" {
 		var err error

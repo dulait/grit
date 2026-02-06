@@ -154,6 +154,10 @@ func (s *IssueService) CloseIssue(ctx context.Context, number int, comment strin
 
 // AddComment generates and posts a comment using the LLM.
 func (s *IssueService) AddComment(ctx context.Context, number int, userPrompt string) (*github.IssueComment, error) {
+	if s.llm == nil {
+		return nil, fmt.Errorf("LLM required for comment generation; configure a provider with 'grit init'")
+	}
+
 	issue, err := s.github.GetIssue(ctx, number)
 	if err != nil {
 		return nil, fmt.Errorf("fetching issue: %w", err)
