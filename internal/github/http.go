@@ -174,3 +174,12 @@ func (c *HTTPClient) AssignIssue(ctx context.Context, number int, assignees []st
 	}
 	return &issue, nil
 }
+
+func (c *HTTPClient) UpdateIssue(ctx context.Context, number int, req UpdateIssueRequest) (*Issue, error) {
+	var issue Issue
+	path := c.repoPath("/issues/%d", number)
+	if err := c.do(ctx, http.MethodPatch, path, req, &issue); err != nil {
+		return nil, err
+	}
+	return &issue, nil
+}

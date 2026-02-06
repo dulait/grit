@@ -50,3 +50,11 @@ type issueGeneratedMsg struct {
 type issueCreatedMsg struct {
 	issue *github.Issue
 }
+
+type navigateToEditMsg struct {
+	issueNumber int
+}
+
+type issueUpdatedMsg struct {
+	issue *github.Issue
+}

@@ -25,6 +25,7 @@ var listHelpBindings = []helpBinding{
 var detailHelpBindings = []helpBinding{
 	{"j/k", "scroll up/down"},
 	{"ctrl+u/d", "half page up/down"},
+	{"e", "edit issue"},
 	{"x", "close issue"},
 	{"a", "assign users"},
 	{"m", "add comment"},

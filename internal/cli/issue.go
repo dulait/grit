@@ -95,6 +95,14 @@ var issueViewCmd = &cobra.Command{
 	RunE:  runIssueView,
 }
 
+var issueEditCmd = &cobra.Command{
+	Use:   "edit <number>",
+	Short: "Edit an issue",
+	Long:  "Edit a GitHub issue's title, description, labels, assignees, or state.",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runIssueEdit,
+}
+
 var issueSubCmd = &cobra.Command{
 	Use:   "sub <parent-number> [prompt]",
 	Short: "Create a sub-issue",
@@ -112,6 +120,7 @@ func init() {
 	issueCmd.AddCommand(issueCommentCmd)
 	issueCmd.AddCommand(issueAssignCmd)
 	issueCmd.AddCommand(issueLinkCmd)
+	issueCmd.AddCommand(issueEditCmd)
 	issueCmd.AddCommand(issueSubCmd)
 
 	issueCreateCmd.Flags().StringVarP(&flagTitle, "title", "t", "", "Issue title")
@@ -130,6 +139,14 @@ func init() {
 	issueLinkCmd.Flags().StringVar(&linkType, "type", "related", "Link type: related, blocks, blocked-by, duplicates, parent, child")
 
 	issueViewCmd.Flags().BoolVarP(&flagWeb, "web", "w", false, "Open in browser")
+
+	issueEditCmd.Flags().StringVarP(&flagTitle, "title", "t", "", "New title")
+	issueEditCmd.Flags().StringVarP(&flagDescription, "description", "d", "", "New description")
+	issueEditCmd.Flags().StringVarP(&flagLabels, "labels", "l", "", "Comma-separated labels (replaces all)")
+	issueEditCmd.Flags().StringVarP(&flagAssignees, "assignees", "a", "", "Comma-separated assignees (replaces all)")
+	issueEditCmd.Flags().StringVarP(&flagState, "state", "s", "", "New state: open or closed")
+	issueEditCmd.Flags().BoolVar(&flagRaw, "raw", false, "Skip LLM enhancement")
+	issueEditCmd.Flags().BoolVarP(&flagYes, "yes", "y", false, "Skip confirmation")
 
 	issueListCmd.Flags().StringVarP(&flagState, "state", "s", "open", "Filter by state: open, closed, all")
 	issueListCmd.Flags().StringVarP(&flagAssignee, "assignee", "a", "", "Filter by assignee, or \"none\" for unassigned")
@@ -573,6 +590,145 @@ func runIssueView(cmd *cobra.Command, args []string) error {
 
 	printIssueDetail(issue)
 	return nil
+}
+
+func runIssueEdit(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
+	number, err := strconv.Atoi(args[0])
+	if err != nil {
+		return fmt.Errorf("invalid issue number: %s", args[0])
+	}
+
+	cfg, err := config.LoadFromWorkingDir()
+	if err != nil {
+		return err
+	}
+
+	ghClient, err := buildGitHubClient(cfg)
+	if err != nil {
+		return err
+	}
+
+	issue, err := ghClient.GetIssue(ctx, number)
+	if err != nil {
+		return err
+	}
+
+	input := buildEditInput(cmd)
+	if input == nil {
+		printIssueDetail(issue)
+		fmt.Println("\nUse flags to specify changes: -t title, -d description, -l labels, -a assignees, -s state")
+		return nil
+	}
+
+	enhance := !flagRaw && (input.Title != nil || input.Body != nil)
+
+	var llmClient llm.Client
+	if enhance {
+		llmClient, err = buildLLMClient(cfg)
+		if err != nil {
+			return err
+		}
+
+		title := issue.Title
+		if input.Title != nil {
+			title = *input.Title
+		}
+		body := issue.Body
+		if input.Body != nil {
+			body = *input.Body
+		}
+
+		fmt.Println("Enhancing with LLM...")
+		svcInput := service.IssueInput{
+			Title:       title,
+			Description: body,
+		}
+		svc := service.NewIssueService(ghClient, llmClient, cfg)
+		generated, err := svc.GenerateIssue(ctx, svcInput, true)
+		if err != nil {
+			return err
+		}
+		input.Title = &generated.Title
+		input.Body = &generated.Body
+	}
+
+	printEditPreview(issue, input)
+
+	if !flagYes {
+		if !confirmAction("Apply these changes?") {
+			fmt.Println("Aborted.")
+			return nil
+		}
+	}
+
+	svc := service.NewIssueService(ghClient, nil, cfg)
+	updated, err := svc.EditIssue(ctx, number, *input)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updated issue #%d: %s\n", updated.Number, updated.HTMLURL)
+	return nil
+}
+
+func buildEditInput(cmd *cobra.Command) *service.EditIssueInput {
+	input := &service.EditIssueInput{}
+	changed := false
+
+	if cmd.Flags().Changed("title") {
+		input.Title = &flagTitle
+		changed = true
+	}
+	if cmd.Flags().Changed("description") {
+		input.Body = &flagDescription
+		changed = true
+	}
+	if cmd.Flags().Changed("state") {
+		input.State = &flagState
+		changed = true
+	}
+	if cmd.Flags().Changed("labels") {
+		input.Labels = parseCSV(flagLabels)
+		input.SetLabels = true
+		changed = true
+	}
+	if cmd.Flags().Changed("assignees") {
+		input.Assignees = parseCSV(flagAssignees)
+		input.SetAssignees = true
+		changed = true
+	}
+
+	if !changed {
+		return nil
+	}
+	return input
+}
+
+func printEditPreview(current *github.Issue, input *service.EditIssueInput) {
+	fmt.Println()
+	fmt.Println(strings.Repeat("─", 60))
+	fmt.Printf("Editing issue #%d\n", current.Number)
+	fmt.Println(strings.Repeat("─", 60))
+
+	if input.Title != nil {
+		fmt.Printf("Title:      %s → %s\n", current.Title, *input.Title)
+	}
+	if input.Body != nil {
+		fmt.Printf("Body:       (will be updated)\n")
+	}
+	if input.State != nil {
+		fmt.Printf("State:      %s → %s\n", current.State, *input.State)
+	}
+	if input.SetLabels {
+		fmt.Printf("Labels:     %s → %s\n", formatLabels(current.Labels), strings.Join(input.Labels, ", "))
+	}
+	if input.SetAssignees {
+		fmt.Printf("Assignees:  %s → %s\n", formatAssignees(current.Assignees), strings.Join(input.Assignees, ", "))
+	}
+
+	fmt.Println(strings.Repeat("─", 60))
 }
 
 func printIssueDetail(issue *github.Issue) {

@@ -48,6 +48,14 @@ type IssueComment struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type UpdateIssueRequest struct {
+	Title     *string  `json:"title,omitempty"`
+	Body      *string  `json:"body,omitempty"`
+	State     *string  `json:"state,omitempty"`
+	Labels    []string `json:"labels,omitempty"`
+	Assignees []string `json:"assignees,omitempty"`
+}
+
 type ErrorResponse struct {
 	Message string `json:"message"`
 	Errors  []struct {

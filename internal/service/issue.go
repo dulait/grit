@@ -18,6 +18,16 @@ type IssueInput struct {
 	Assignees   []string
 }
 
+type EditIssueInput struct {
+	Title        *string
+	Body         *string
+	State        *string
+	Labels       []string
+	Assignees    []string
+	SetLabels    bool
+	SetAssignees bool
+}
+
 // IssueService provides operations for managing GitHub issues.
 type IssueService struct {
 	github github.Client
@@ -77,6 +87,26 @@ func (s *IssueService) GenerateIssue(ctx context.Context, input IssueInput, enha
 		issue.Labels = input.Labels
 	}
 
+	return issue, nil
+}
+
+func (s *IssueService) EditIssue(ctx context.Context, number int, input EditIssueInput) (*github.Issue, error) {
+	req := github.UpdateIssueRequest{
+		Title: input.Title,
+		Body:  input.Body,
+		State: input.State,
+	}
+	if input.SetLabels {
+		req.Labels = input.Labels
+	}
+	if input.SetAssignees {
+		req.Assignees = input.Assignees
+	}
+
+	issue, err := s.github.UpdateIssue(ctx, number, req)
+	if err != nil {
+		return nil, fmt.Errorf("updating issue: %w", err)
+	}
 	return issue, nil
 }
 

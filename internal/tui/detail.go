@@ -127,6 +127,13 @@ func (m detailModel) Update(msg tea.Msg) (detailModel, tea.Cmd) {
 					return startActionMsg{kind: actionComment, issueNumber: number}
 				}
 			}
+		case key.Matches(msg, detailKeys.Edit):
+			if m.issue != nil {
+				number := m.issueNumber
+				return m, func() tea.Msg {
+					return navigateToEditMsg{issueNumber: number}
+				}
+			}
 		}
 
 		if m.ready {
@@ -175,7 +182,7 @@ func (m detailModel) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("  j/k scroll · x close · a assign · m comment · o browser · esc/h back · ? help"))
+	b.WriteString(helpStyle.Render("  j/k scroll · e edit · x close · a assign · m comment · o browser · esc/h back · ? help"))
 
 	return b.String()
 }
