@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -33,6 +35,7 @@ var (
 	flagLabel       string
 	flagLimit       int
 	flagPage        int
+	flagWeb         bool
 )
 
 var issueCreateCmd = &cobra.Command{
@@ -85,6 +88,13 @@ var issueLinkCmd = &cobra.Command{
 	RunE:  runIssueLink,
 }
 
+var issueViewCmd = &cobra.Command{
+	Use:   "view <number>",
+	Short: "View an issue",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runIssueView,
+}
+
 var issueSubCmd = &cobra.Command{
 	Use:   "sub <parent-number> [prompt]",
 	Short: "Create a sub-issue",
@@ -97,6 +107,7 @@ func init() {
 	rootCmd.AddCommand(issueCmd)
 	issueCmd.AddCommand(issueCreateCmd)
 	issueCmd.AddCommand(issueListCmd)
+	issueCmd.AddCommand(issueViewCmd)
 	issueCmd.AddCommand(issueCloseCmd)
 	issueCmd.AddCommand(issueCommentCmd)
 	issueCmd.AddCommand(issueAssignCmd)
@@ -117,6 +128,8 @@ func init() {
 	issueSubCmd.Flags().BoolVarP(&flagYes, "yes", "y", false, "Skip confirmation prompt")
 
 	issueLinkCmd.Flags().StringVar(&linkType, "type", "related", "Link type: related, blocks, blocked-by, duplicates, parent, child")
+
+	issueViewCmd.Flags().BoolVarP(&flagWeb, "web", "w", false, "Open in browser")
 
 	issueListCmd.Flags().StringVarP(&flagState, "state", "s", "open", "Filter by state: open, closed, all")
 	issueListCmd.Flags().StringVarP(&flagAssignee, "assignee", "a", "", "Filter by assignee, or \"none\" for unassigned")
@@ -527,6 +540,76 @@ func runIssueList(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func runIssueView(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
+	number, err := strconv.Atoi(args[0])
+	if err != nil {
+		return fmt.Errorf("invalid issue number: %s", args[0])
+	}
+
+	cfg, err := config.LoadFromWorkingDir()
+	if err != nil {
+		return err
+	}
+
+	ghClient, err := buildGitHubClient(cfg)
+	if err != nil {
+		return err
+	}
+
+	issue, err := ghClient.GetIssue(ctx, number)
+	if err != nil {
+		return err
+	}
+
+	if flagWeb {
+		openInBrowser(issue.HTMLURL)
+		fmt.Printf("Opening issue #%d in browser...\n", issue.Number)
+		return nil
+	}
+
+	printIssueDetail(issue)
+	return nil
+}
+
+func printIssueDetail(issue *github.Issue) {
+	fmt.Println()
+	fmt.Println(strings.Repeat("─", 60))
+	fmt.Printf("#%d %s\n", issue.Number, issue.Title)
+	fmt.Println(strings.Repeat("─", 60))
+	fmt.Printf("State:      %s\n", issue.State)
+	if len(issue.Labels) > 0 {
+		fmt.Printf("Labels:     %s\n", formatLabels(issue.Labels))
+	}
+	if len(issue.Assignees) > 0 {
+		fmt.Printf("Assignees:  %s\n", formatAssignees(issue.Assignees))
+	}
+	fmt.Printf("URL:        %s\n", issue.HTMLURL)
+	fmt.Printf("Created:    %s\n", issue.CreatedAt.Format("2006-01-02 15:04"))
+	fmt.Printf("Updated:    %s\n", issue.UpdatedAt.Format("2006-01-02 15:04"))
+	fmt.Println(strings.Repeat("─", 60))
+	if issue.Body != "" {
+		fmt.Println(issue.Body)
+	} else {
+		fmt.Println("No description provided.")
+	}
+	fmt.Println(strings.Repeat("─", 60))
+}
+
+func openInBrowser(url string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	default:
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	}
+	_ = cmd.Start()
 }
 
 func printIssueList(issues []github.Issue) {
