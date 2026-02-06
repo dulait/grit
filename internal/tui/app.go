@@ -9,6 +9,7 @@ type screen int
 const (
 	screenList screen = iota
 	screenDetail
+	screenCreate
 )
 
 type app struct {
@@ -16,6 +17,7 @@ type app struct {
 	screen   screen
 	list     listModel
 	detail   detailModel
+	create   createModel
 	action   *actionModel
 	showHelp bool
 	width    int
@@ -45,6 +47,10 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a.updateAction(msg)
 		}
 
+		if a.screen == screenCreate {
+			break
+		}
+
 		if msg.String() == "?" {
 			a.showHelp = !a.showHelp
 			return a, nil
@@ -70,8 +76,16 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.detail.Init()
 
 	case navigateToListMsg:
+		a.list = newListModel(a.deps)
+		a.list.width = a.width
+		a.list.height = a.height
 		a.screen = screenList
-		return a, nil
+		return a, a.list.Init()
+
+	case navigateToCreateMsg:
+		a.create = newCreateModel(a.deps, a.width, a.height)
+		a.screen = screenCreate
+		return a, a.create.Init()
 
 	case startActionMsg:
 		action := newActionModel(a.deps, msg.kind, msg.issueNumber, a.width, a.height)
@@ -107,6 +121,10 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		a.detail, cmd = a.detail.Update(msg)
 		return a, cmd
+	case screenCreate:
+		var cmd tea.Cmd
+		a.create, cmd = a.create.Update(msg)
+		return a, cmd
 	}
 
 	return a, nil
@@ -132,6 +150,8 @@ func (a app) View() string {
 		return a.list.View()
 	case screenDetail:
 		return a.detail.View()
+	case screenCreate:
+		return a.create.View()
 	}
 
 	return ""

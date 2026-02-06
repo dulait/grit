@@ -6,6 +6,7 @@ type listKeyMap struct {
 	Up           key.Binding
 	Down         key.Binding
 	Open         key.Binding
+	Create       key.Binding
 	NextPage     key.Binding
 	PrevPage     key.Binding
 	Refresh      key.Binding
@@ -20,6 +21,7 @@ var listKeys = listKeyMap{
 	Up:           key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/↑", "up")),
 	Down:         key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/↓", "down")),
 	Open:         key.NewBinding(key.WithKeys("enter", "l"), key.WithHelp("enter/l", "open")),
+	Create:       key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "create issue")),
 	NextPage:     key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "next page")),
 	PrevPage:     key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "prev page")),
 	Refresh:      key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),

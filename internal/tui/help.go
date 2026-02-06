@@ -14,6 +14,7 @@ type helpBinding struct {
 var listHelpBindings = []helpBinding{
 	{"j/k", "navigate up/down"},
 	{"enter/l", "open issue"},
+	{"c", "create issue"},
 	{"n/p", "next/prev page"},
 	{"r", "refresh"},
 	{"1/2/3", "filter: open/closed/all"},
