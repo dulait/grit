@@ -16,6 +16,7 @@ type listModel struct {
 	deps    Dependencies
 	issues  []github.Issue
 	cursor  int
+	offset  int
 	page    int
 	perPage int
 	state   string
@@ -66,6 +67,7 @@ func (m listModel) Update(msg tea.Msg) (listModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.adjustOffset()
 
 	case spinner.TickMsg:
 		if m.loading {
@@ -79,6 +81,7 @@ func (m listModel) Update(msg tea.Msg) (listModel, tea.Cmd) {
 		m.page = msg.page
 		m.loading = false
 		m.cursor = 0
+		m.offset = 0
 		m.err = nil
 
 	case errMsg:
@@ -94,10 +97,12 @@ func (m listModel) Update(msg tea.Msg) (listModel, tea.Cmd) {
 		case key.Matches(msg, listKeys.Down):
 			if m.cursor < len(m.issues)-1 {
 				m.cursor++
+				m.adjustOffset()
 			}
 		case key.Matches(msg, listKeys.Up):
 			if m.cursor > 0 {
 				m.cursor--
+				m.adjustOffset()
 			}
 		case key.Matches(msg, listKeys.Open):
 			if len(m.issues) > 0 {
@@ -167,8 +172,25 @@ func (m listModel) View() string {
 		b.WriteString(dimStyle.Render("  No issues found."))
 		b.WriteString("\n")
 	} else {
-		for i, issue := range m.issues {
-			b.WriteString(m.renderIssueRow(i, issue))
+		visible := m.visibleRows()
+		end := m.offset + visible
+		if end > len(m.issues) {
+			end = len(m.issues)
+		}
+
+		if m.offset > 0 {
+			b.WriteString(dimStyle.Render(fmt.Sprintf("  ↑ %d more above", m.offset)))
+			b.WriteString("\n")
+		}
+
+		for i := m.offset; i < end; i++ {
+			b.WriteString(m.renderIssueRow(i, m.issues[i]))
+			b.WriteString("\n")
+		}
+
+		remaining := len(m.issues) - end
+		if remaining > 0 {
+			b.WriteString(dimStyle.Render(fmt.Sprintf("  ↓ %d more below", remaining)))
 			b.WriteString("\n")
 		}
 	}
@@ -228,6 +250,24 @@ func (m listModel) renderIssueRow(index int, issue github.Issue) string {
 		return selectedStyle.Width(m.width).Render(row)
 	}
 	return normalStyle.Render(row)
+}
+
+func (m listModel) visibleRows() int {
+	rows := m.height - 6
+	if rows < 1 {
+		return 1
+	}
+	return rows
+}
+
+func (m *listModel) adjustOffset() {
+	visible := m.visibleRows()
+	if m.cursor < m.offset {
+		m.offset = m.cursor
+	}
+	if m.cursor >= m.offset+visible {
+		m.offset = m.cursor - visible + 1
+	}
 }
 
 func truncateStr(s string, maxLen int) string {
