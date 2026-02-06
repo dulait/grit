@@ -136,6 +136,8 @@ func (m listModel) Update(msg tea.Msg) (listModel, tea.Cmd) {
 			m.page = 1
 			m.loading = true
 			return m, tea.Batch(m.fetchIssues(), m.spinner.Tick)
+		case key.Matches(msg, listKeys.Create):
+			return m, func() tea.Msg { return navigateToCreateMsg{} }
 		}
 	}
 
@@ -174,7 +176,7 @@ func (m listModel) View() string {
 	b.WriteString("\n")
 	b.WriteString(renderStatusBar(repo, m.state, m.page, len(m.issues), m.width))
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("  j/k navigate · enter open · n/p page · 1/2/3 filter · ? help · q quit"))
+	b.WriteString(helpStyle.Render("  j/k navigate · enter open · c create · n/p page · 1/2/3 filter · ? help · q quit"))
 
 	return b.String()
 }
