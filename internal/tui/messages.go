@@ -24,3 +24,16 @@ type errMsg struct {
 type statusMsg struct {
 	text string
 }
+
+type startActionMsg struct {
+	kind        actionKind
+	issueNumber int
+}
+
+type actionSuccessMsg struct {
+	text string
+}
+
+type actionDoneMsg struct{}
+
+type actionCancelledMsg struct{}

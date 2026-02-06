@@ -37,6 +37,9 @@ type detailKeyMap struct {
 	HalfPageDwn key.Binding
 	Back        key.Binding
 	OpenBrowser key.Binding
+	Close       key.Binding
+	Assign      key.Binding
+	Comment     key.Binding
 	Help        key.Binding
 	Quit        key.Binding
 }
@@ -48,6 +51,9 @@ var detailKeys = detailKeyMap{
 	HalfPageDwn: key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "half page down")),
 	Back:        key.NewBinding(key.WithKeys("esc", "h", "backspace"), key.WithHelp("esc/h", "back")),
 	OpenBrowser: key.NewBinding(key.WithKeys("o"), key.WithHelp("o", "open in browser")),
+	Close:       key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "close issue")),
+	Assign:      key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "assign")),
+	Comment:     key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "comment")),
 	Help:        key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 	Quit:        key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 }

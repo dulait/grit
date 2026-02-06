@@ -106,6 +106,27 @@ func (m detailModel) Update(msg tea.Msg) (detailModel, tea.Cmd) {
 		case key.Matches(msg, detailKeys.HalfPageDwn):
 			m.viewport.HalfViewDown()
 			return m, nil
+		case key.Matches(msg, detailKeys.Close):
+			if m.issue != nil {
+				number := m.issueNumber
+				return m, func() tea.Msg {
+					return startActionMsg{kind: actionClose, issueNumber: number}
+				}
+			}
+		case key.Matches(msg, detailKeys.Assign):
+			if m.issue != nil {
+				number := m.issueNumber
+				return m, func() tea.Msg {
+					return startActionMsg{kind: actionAssign, issueNumber: number}
+				}
+			}
+		case key.Matches(msg, detailKeys.Comment):
+			if m.issue != nil {
+				number := m.issueNumber
+				return m, func() tea.Msg {
+					return startActionMsg{kind: actionComment, issueNumber: number}
+				}
+			}
 		}
 
 		if m.ready {
@@ -154,7 +175,7 @@ func (m detailModel) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("  j/k scroll · ctrl+u/d half page · o open in browser · esc/h back · q quit"))
+	b.WriteString(helpStyle.Render("  j/k scroll · x close · a assign · m comment · o browser · esc/h back · ? help"))
 
 	return b.String()
 }
