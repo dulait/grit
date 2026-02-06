@@ -16,6 +16,7 @@ type app struct {
 	screen   screen
 	list     listModel
 	detail   detailModel
+	action   *actionModel
 	showHelp bool
 	width    int
 	height   int
@@ -38,6 +39,10 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return a, tea.Quit
+		}
+
+		if a.action != nil {
+			return a.updateAction(msg)
 		}
 
 		if msg.String() == "?" {
@@ -67,6 +72,26 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case navigateToListMsg:
 		a.screen = screenList
 		return a, nil
+
+	case startActionMsg:
+		action := newActionModel(a.deps, msg.kind, msg.issueNumber, a.width, a.height)
+		a.action = &action
+		return a, a.action.Init()
+
+	case actionDoneMsg:
+		a.action = nil
+		a.detail = newDetailModel(a.deps, a.detail.issueNumber)
+		a.detail.width = a.width
+		a.detail.height = a.height
+		return a, a.detail.Init()
+
+	case actionCancelledMsg:
+		a.action = nil
+		return a, nil
+	}
+
+	if a.action != nil {
+		return a.updateAction(msg)
 	}
 
 	if a.showHelp {
@@ -87,7 +112,17 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, nil
 }
 
+func (a app) updateAction(msg tea.Msg) (tea.Model, tea.Cmd) {
+	action, cmd := a.action.Update(msg)
+	a.action = &action
+	return a, cmd
+}
+
 func (a app) View() string {
+	if a.action != nil {
+		return a.action.View()
+	}
+
 	if a.showHelp {
 		return renderHelp(a.width, a.screen)
 	}
