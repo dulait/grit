@@ -8,12 +8,14 @@ type screen int
 
 const (
 	screenList screen = iota
+	screenDetail
 )
 
 type app struct {
 	deps     Dependencies
 	screen   screen
 	list     listModel
+	detail   detailModel
 	showHelp bool
 	width    int
 	height   int
@@ -54,6 +56,17 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
+
+	case navigateToDetailMsg:
+		a.detail = newDetailModel(a.deps, msg.issueNumber)
+		a.detail.width = a.width
+		a.detail.height = a.height
+		a.screen = screenDetail
+		return a, a.detail.Init()
+
+	case navigateToListMsg:
+		a.screen = screenList
+		return a, nil
 	}
 
 	if a.showHelp {
@@ -65,6 +78,10 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		a.list, cmd = a.list.Update(msg)
 		return a, cmd
+	case screenDetail:
+		var cmd tea.Cmd
+		a.detail, cmd = a.detail.Update(msg)
+		return a, cmd
 	}
 
 	return a, nil
@@ -72,12 +89,14 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (a app) View() string {
 	if a.showHelp {
-		return renderHelp(a.width)
+		return renderHelp(a.width, a.screen)
 	}
 
 	switch a.screen {
 	case screenList:
 		return a.list.View()
+	case screenDetail:
+		return a.detail.View()
 	}
 
 	return ""

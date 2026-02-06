@@ -99,6 +99,13 @@ func (m listModel) Update(msg tea.Msg) (listModel, tea.Cmd) {
 			if m.cursor > 0 {
 				m.cursor--
 			}
+		case key.Matches(msg, listKeys.Open):
+			if len(m.issues) > 0 {
+				issue := m.issues[m.cursor]
+				return m, func() tea.Msg {
+					return navigateToDetailMsg{issueNumber: issue.Number}
+				}
+			}
 		case key.Matches(msg, listKeys.NextPage):
 			if len(m.issues) == m.perPage {
 				m.page++
