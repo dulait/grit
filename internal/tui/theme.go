@@ -15,4 +15,7 @@ var (
 	helpStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
 	headerStyle      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("255")).Background(lipgloss.Color("62")).Padding(0, 1)
 	dimStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	modalStyle       = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("62")).Padding(1, 2)
+	modalTitleStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212"))
+	successStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
 )
