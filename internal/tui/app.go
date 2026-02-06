@@ -53,6 +53,10 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 
+		if a.screen == screenList && a.list.searching {
+			break
+		}
+
 		if msg.String() == "?" {
 			a.showHelp = !a.showHelp
 			return a, nil

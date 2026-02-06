@@ -10,7 +10,7 @@ func renderStatusBar(repo string, state string, page int, count int, width int) 
 	left := fmt.Sprintf(" %s · %s", repo, state)
 	right := fmt.Sprintf("Page %d · %d issues ", page, count)
 
-	gap := width - lipgloss.Width(left) - lipgloss.Width(right)
+	gap := width - lipgloss.Width(left) - lipgloss.Width(right) - statusBarStyle.GetHorizontalPadding()
 	if gap < 0 {
 		gap = 0
 	}

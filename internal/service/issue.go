@@ -136,6 +136,14 @@ func (s *IssueService) ListIssues(ctx context.Context, req github.ListIssuesRequ
 }
 
 
+func (s *IssueService) SearchIssues(ctx context.Context, req github.SearchIssuesRequest) (*github.SearchIssuesResponse, error) {
+	resp, err := s.github.SearchIssues(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("searching issues: %w", err)
+	}
+	return resp, nil
+}
+
 func (s *IssueService) CloseIssue(ctx context.Context, number int, comment string) (*github.Issue, error) {
 	closed, err := s.github.CloseIssue(ctx, number, comment)
 	if err != nil {
