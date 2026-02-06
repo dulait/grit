@@ -176,9 +176,26 @@ func (c *HTTPClient) AssignIssue(ctx context.Context, number int, assignees []st
 }
 
 func (c *HTTPClient) UpdateIssue(ctx context.Context, number int, req UpdateIssueRequest) (*Issue, error) {
+	body := map[string]any{}
+	if req.Title != nil {
+		body["title"] = *req.Title
+	}
+	if req.Body != nil {
+		body["body"] = *req.Body
+	}
+	if req.State != nil {
+		body["state"] = *req.State
+	}
+	if req.Labels != nil {
+		body["labels"] = req.Labels
+	}
+	if req.Assignees != nil {
+		body["assignees"] = req.Assignees
+	}
+
 	var issue Issue
 	path := c.repoPath("/issues/%d", number)
-	if err := c.do(ctx, http.MethodPatch, path, req, &issue); err != nil {
+	if err := c.do(ctx, http.MethodPatch, path, body, &issue); err != nil {
 		return nil, err
 	}
 	return &issue, nil

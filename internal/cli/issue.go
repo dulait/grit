@@ -29,6 +29,7 @@ var (
 	flagAssignees   string
 	flagYes         bool
 	flagRaw         bool
+	flagEnhance     bool
 	linkType        string
 	flagState       string
 	flagAssignee    string
@@ -145,7 +146,7 @@ func init() {
 	issueEditCmd.Flags().StringVarP(&flagLabels, "labels", "l", "", "Comma-separated labels (replaces all)")
 	issueEditCmd.Flags().StringVarP(&flagAssignees, "assignees", "a", "", "Comma-separated assignees (replaces all)")
 	issueEditCmd.Flags().StringVarP(&flagState, "state", "s", "", "New state: open or closed")
-	issueEditCmd.Flags().BoolVar(&flagRaw, "raw", false, "Skip LLM enhancement")
+	issueEditCmd.Flags().BoolVar(&flagEnhance, "enhance", false, "Enhance changes with LLM")
 	issueEditCmd.Flags().BoolVarP(&flagYes, "yes", "y", false, "Skip confirmation")
 
 	issueListCmd.Flags().StringVarP(&flagState, "state", "s", "open", "Filter by state: open, closed, all")
@@ -622,7 +623,7 @@ func runIssueEdit(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	enhance := !flagRaw && (input.Title != nil || input.Body != nil)
+	enhance := flagEnhance && (input.Title != nil || input.Body != nil)
 
 	var llmClient llm.Client
 	if enhance {
@@ -716,7 +717,8 @@ func printEditPreview(current *github.Issue, input *service.EditIssueInput) {
 		fmt.Printf("Title:      %s → %s\n", current.Title, *input.Title)
 	}
 	if input.Body != nil {
-		fmt.Printf("Body:       (will be updated)\n")
+		body := truncate(*input.Body, 80)
+		fmt.Printf("Body:       %s\n", body)
 	}
 	if input.State != nil {
 		fmt.Printf("State:      %s → %s\n", current.State, *input.State)
