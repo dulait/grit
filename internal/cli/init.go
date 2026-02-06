@@ -4,11 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/dulait/grit/internal/config"
+	"github.com/dulait/grit/internal/llm"
 )
 
 var initCmd = &cobra.Command{
@@ -44,27 +48,47 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	provider, err := promptWithDefault(reader, "LLM provider (anthropic/openai/ollama)", "anthropic")
-	if err != nil {
-		return err
-	}
-
-	model, err := promptModel(reader, provider)
+	provider, err := promptProviderMenu(reader)
 	if err != nil {
 		return err
 	}
 
 	llmCfg := config.LLMConfig{
-		Provider: provider,
-		Model:    model,
+		Provider: provider.Name,
 	}
 
-	if provider == "ollama" {
-		baseURL, err := promptWithDefault(reader, "Ollama base URL", "http://localhost:11434")
+	if provider.Name == "none" {
+		fmt.Println("No LLM configured. Use --raw flag for issue creation.")
+	} else {
+		if provider.RequiresKey {
+			key, err := promptAPIKey(provider.Name)
+			if err != nil {
+				return err
+			}
+			if err := config.SetLLMKey(provider.Name, key); err != nil {
+				return fmt.Errorf("storing API key: %w", err)
+			}
+		}
+
+		if provider.DefaultURL != "" {
+			baseURL, err := promptWithDefault(reader, "Ollama base URL", provider.DefaultURL)
+			if err != nil {
+				return err
+			}
+			llmCfg.BaseURL = baseURL
+
+			if err := llm.CheckOllamaConnection(baseURL); err != nil {
+				fmt.Printf("Warning: %v\n", err)
+			} else {
+				fmt.Println("Ollama connection OK")
+			}
+		}
+
+		model, err := promptWithDefault(reader, "Model", provider.DefaultModel)
 		if err != nil {
 			return err
 		}
-		llmCfg.BaseURL = baseURL
+		llmCfg.Model = model
 	}
 
 	cfg := &config.Config{
@@ -84,8 +108,59 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("creating .gitignore: %w", err)
 	}
 
-	fmt.Printf("Initialized grit for %s/%s using %s (%s)\n", owner, repo, provider, model)
+	if provider.Name == "none" {
+		fmt.Printf("Initialized grit for %s/%s (no LLM)\n", owner, repo)
+	} else {
+		fmt.Printf("Initialized grit for %s/%s using %s (%s)\n", owner, repo, llmCfg.Provider, llmCfg.Model)
+	}
 	return nil
+}
+
+func promptProviderMenu(reader *bufio.Reader) (*llm.ProviderInfo, error) {
+	providers := llm.Providers()
+
+	fmt.Println("Select LLM provider:")
+	for i, p := range providers {
+		fmt.Printf("  %d. %-10s - %s\n", i+1, p.Name, p.Description)
+	}
+
+	for {
+		fmt.Printf("Choice [1-%d]: ", len(providers))
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return nil, fmt.Errorf("reading input: %w", err)
+		}
+
+		choice, err := strconv.Atoi(strings.TrimSpace(input))
+		if err != nil || choice < 1 || choice > len(providers) {
+			fmt.Printf("Please enter a number between 1 and %d.\n", len(providers))
+			continue
+		}
+
+		selected := providers[choice-1]
+		return &selected, nil
+	}
+}
+
+func promptAPIKey(provider string) (string, error) {
+	fmt.Printf("Enter API key for %s: ", provider)
+
+	keyBytes, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		reader := bufio.NewReader(os.Stdin)
+		key, err := reader.ReadString('\n')
+		if err != nil {
+			return "", fmt.Errorf("reading API key: %w", err)
+		}
+		keyBytes = []byte(strings.TrimSpace(key))
+	}
+	fmt.Println()
+
+	key := strings.TrimSpace(string(keyBytes))
+	if key == "" {
+		return "", fmt.Errorf("API key cannot be empty")
+	}
+	return key, nil
 }
 
 func prompt(reader *bufio.Reader, label string) (string, error) {
@@ -108,17 +183,4 @@ func promptWithDefault(reader *bufio.Reader, label, defaultVal string) (string, 
 		return defaultVal, nil
 	}
 	return input, nil
-}
-
-func promptModel(reader *bufio.Reader, provider string) (string, error) {
-	defaults := map[string]string{
-		"anthropic": "claude-sonnet-4-20250514",
-		"openai":    "gpt-4o",
-		"ollama":    "llama3.2",
-	}
-	defaultModel := defaults[provider]
-	if defaultModel == "" {
-		defaultModel = "claude-sonnet-4-20250514"
-	}
-	return promptWithDefault(reader, "Model", defaultModel)
 }

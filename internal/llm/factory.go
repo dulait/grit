@@ -9,6 +9,8 @@ import (
 // NewClient creates an LLM client for the specified provider configuration.
 func NewClient(cfg config.LLMConfig, apiKey string) (Client, error) {
 	switch cfg.Provider {
+	case "none":
+		return nil, nil
 	case "anthropic":
 		if apiKey == "" {
 			return nil, fmt.Errorf("anthropic requires an API key; set GRIT_LLM_KEY or run 'grit auth llm'")
@@ -16,6 +18,11 @@ func NewClient(cfg config.LLMConfig, apiKey string) (Client, error) {
 		return NewAnthropicClient(apiKey, cfg.Model), nil
 	case "ollama":
 		return NewOllamaClient(cfg.BaseURL, cfg.Model), nil
+	case "groq":
+		if apiKey == "" {
+			return nil, fmt.Errorf("groq requires an API key; set GRIT_LLM_KEY or run 'grit auth llm'")
+		}
+		return nil, fmt.Errorf("groq provider not yet implemented")
 	case "openai":
 		if apiKey == "" {
 			return nil, fmt.Errorf("openai requires an API key; set GRIT_LLM_KEY or run 'grit auth llm'")
