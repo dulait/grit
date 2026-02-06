@@ -9,4 +9,5 @@ type Client interface {
 	ListIssues(ctx context.Context, req ListIssuesRequest) ([]Issue, error)
 	AddComment(ctx context.Context, number int, body string) (*IssueComment, error)
 	AssignIssue(ctx context.Context, number int, assignees []string) (*Issue, error)
+	UpdateIssue(ctx context.Context, number int, req UpdateIssueRequest) (*Issue, error)
 }

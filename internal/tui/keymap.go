@@ -42,6 +42,7 @@ type detailKeyMap struct {
 	Close       key.Binding
 	Assign      key.Binding
 	Comment     key.Binding
+	Edit        key.Binding
 	Help        key.Binding
 	Quit        key.Binding
 }
@@ -56,6 +57,7 @@ var detailKeys = detailKeyMap{
 	Close:       key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "close issue")),
 	Assign:      key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "assign")),
 	Comment:     key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "comment")),
+	Edit:        key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 	Help:        key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
 	Quit:        key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 }

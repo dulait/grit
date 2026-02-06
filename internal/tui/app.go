@@ -10,6 +10,7 @@ const (
 	screenList screen = iota
 	screenDetail
 	screenCreate
+	screenEdit
 )
 
 type app struct {
@@ -18,6 +19,7 @@ type app struct {
 	list     listModel
 	detail   detailModel
 	create   createModel
+	edit     editModel
 	action   *actionModel
 	showHelp bool
 	width    int
@@ -47,7 +49,7 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a.updateAction(msg)
 		}
 
-		if a.screen == screenCreate {
+		if a.screen == screenCreate || a.screen == screenEdit {
 			break
 		}
 
@@ -81,6 +83,11 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.list.height = a.height
 		a.screen = screenList
 		return a, a.list.Init()
+
+	case navigateToEditMsg:
+		a.edit = newEditModel(a.deps, msg.issueNumber, a.width, a.height)
+		a.screen = screenEdit
+		return a, a.edit.Init()
 
 	case navigateToCreateMsg:
 		a.create = newCreateModel(a.deps, a.width, a.height)
@@ -125,6 +132,10 @@ func (a app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		a.create, cmd = a.create.Update(msg)
 		return a, cmd
+	case screenEdit:
+		var cmd tea.Cmd
+		a.edit, cmd = a.edit.Update(msg)
+		return a, cmd
 	}
 
 	return a, nil
@@ -152,6 +163,8 @@ func (a app) View() string {
 		return a.detail.View()
 	case screenCreate:
 		return a.create.View()
+	case screenEdit:
+		return a.edit.View()
 	}
 
 	return ""
